@@ -1,0 +1,207 @@
+html, body, #root { margin: 0; padding: 0; min-height: 100%; }
+
+  :root {
+    --tg-bg: #fbfbfd;
+    --tg-surface: #ffffff;
+    --tg-ink: #1d1d1f;
+    --tg-ink-soft: #6e6e73;
+    --tg-line: #d2d2d7;
+    --tg-line-soft: #e8e8ed;
+    --tg-blue: #0071e3;
+    --tg-blue-hover: #0077ed;
+    --tg-green: #1e8e3e;
+    --tg-red: #d70015;
+    --tg-amber: #b25000;
+    --tg-radius: 18px;
+    --tg-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  .tg-root { font-family: var(--tg-font); background: var(--tg-bg); color: var(--tg-ink); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  .tg-root * { box-sizing: border-box; }
+  .tg-nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    background: rgba(251,251,253,0.78);
+    border-bottom: 1px solid var(--tg-line-soft);
+  }
+  .tg-nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 52px; }
+  .tg-brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; letter-spacing: -0.01em; color: var(--tg-ink); cursor: pointer; }
+  .tg-tabs { display: flex; gap: 28px; }
+  .tg-tab { font-size: 13px; color: var(--tg-ink-soft); cursor: pointer; padding: 4px 0; border-bottom: 2px solid transparent; transition: color .15s ease; background:none; border-left:none; border-right:none; border-top:none; font-family: var(--tg-font); }
+  .tg-tab:hover { color: var(--tg-ink); }
+  .tg-tab.active { color: var(--tg-ink); border-bottom: 2px solid var(--tg-blue); }
+  .tg-tab:disabled { opacity: 0.35; cursor: not-allowed; }
+  .tg-navbtn { display:flex; align-items:center; gap:6px; font-size: 13px; font-weight: 500; color: var(--tg-blue); background: none; border: none; cursor: pointer; font-family: var(--tg-font); }
+
+  .tg-container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  .tg-hero { padding: 96px 24px 64px; text-align: center; }
+  .tg-hero h1 { font-size: 56px; line-height: 1.05; font-weight: 650; letter-spacing: -0.03em; margin: 0 0 16px; }
+  .tg-hero p { font-size: 21px; line-height: 1.4; color: var(--tg-ink-soft); max-width: 620px; margin: 0 auto 32px; font-weight: 400; }
+  .tg-eyebrow { font-size: 15px; color: var(--tg-blue); font-weight: 600; margin-bottom: 10px; }
+
+  .tg-btn { display: inline-flex; align-items: center; justify-content:center; gap: 8px; font-family: var(--tg-font); font-size: 15px; font-weight: 500; padding: 11px 22px; border-radius: 980px; border: none; cursor: pointer; transition: background .15s ease, transform .1s ease; }
+  .tg-btn-primary { background: var(--tg-blue); color: white; }
+  .tg-btn-primary:hover { background: var(--tg-blue-hover); }
+  .tg-btn-primary:active { transform: scale(0.98); }
+  .tg-btn-secondary { background: var(--tg-surface); color: var(--tg-ink); border: 1px solid var(--tg-line); }
+  .tg-btn-secondary:hover { background: #f5f5f7; }
+  .tg-btn-ghost { background: none; color: var(--tg-blue); padding: 8px 4px; }
+  .tg-btn-danger { background: #fff0ef; color: var(--tg-red); }
+  .tg-btn-danger:hover { background: #ffe4e2; }
+  .tg-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .tg-btn-sm { padding: 7px 14px; font-size: 13px; }
+
+  .tg-card { background: var(--tg-surface); border: 1px solid var(--tg-line-soft); border-radius: var(--tg-radius); padding: 28px; }
+  .tg-card + .tg-card { margin-top: 20px; }
+  .tg-section-title { font-size: 22px; font-weight: 650; letter-spacing: -0.02em; margin: 0 0 4px; }
+  .tg-section-sub { font-size: 14px; color: var(--tg-ink-soft); margin: 0 0 20px; }
+
+  .tg-field { margin-bottom: 16px; }
+  .tg-label { display:block; font-size: 12px; font-weight: 600; color: var(--tg-ink-soft); margin-bottom: 6px; text-transform: none; }
+  .tg-input, .tg-select {
+    width: 100%; font-family: var(--tg-font); font-size: 14px; padding: 9px 12px;
+    border: 1px solid var(--tg-line); border-radius: 10px; background: var(--tg-surface); color: var(--tg-ink);
+  }
+  .tg-input:focus, .tg-select:focus, .tg-tab:focus-visible, .tg-btn:focus-visible { outline: 2px solid var(--tg-blue); outline-offset: 2px; }
+  .tg-row { display: grid; gap: 14px; }
+  .tg-grid-2 { grid-template-columns: 1fr 1fr; }
+  .tg-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .tg-grid-4 { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+  @media (max-width: 720px) { .tg-grid-2, .tg-grid-3, .tg-grid-4 { grid-template-columns: 1fr; } .tg-hero h1 { font-size: 36px; } .tg-hero p{font-size:17px;} }
+
+  .tg-chip { display:inline-flex; align-items:center; gap:6px; background:#f5f5f7; border-radius: 980px; padding: 5px 12px; font-size: 12px; color: var(--tg-ink); border: 1px solid var(--tg-line-soft); }
+  .tg-list-item { display:flex; align-items:center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--tg-line-soft); }
+  .tg-list-item:last-child { border-bottom: none; }
+  .tg-subtle { color: var(--tg-ink-soft); font-size: 13px; }
+  .tg-divider { height: 1px; background: var(--tg-line-soft); margin: 28px 0; border:none; }
+
+  .tg-table-wrap { overflow-x: auto; border: 1px solid var(--tg-line-soft); border-radius: 14px; }
+  table.tg-table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 640px; }
+  table.tg-table th { background: #f5f5f7; text-align: left; padding: 10px 12px; font-weight: 600; color: var(--tg-ink-soft); border-bottom: 1px solid var(--tg-line-soft); white-space: nowrap; }
+  table.tg-table td { padding: 8px; border-bottom: 1px solid var(--tg-line-soft); vertical-align: top; }
+  .tg-cell { border-radius: 10px; padding: 8px 9px; min-height: 52px; background: #f5f5f7; }
+  .tg-cell.tg-lab { background: linear-gradient(135deg, #eaf3ff, #dcebff); border-left: 3px solid var(--tg-blue); }
+  .tg-cell.tg-empty { background: transparent; border: 1px dashed var(--tg-line-soft); }
+  .tg-cell.tg-break { background: repeating-linear-gradient(135deg, #f5f5f7, #f5f5f7 6px, #ececee 6px, #ececee 12px); text-align:center; color: var(--tg-ink-soft); font-size:11px; display:flex; align-items:center; justify-content:center;}
+  .tg-cell .tg-cell-title { font-weight: 600; font-size: 12.5px; }
+  .tg-cell .tg-cell-sub { font-size: 11px; color: var(--tg-ink-soft); margin-top: 2px; }
+  .tg-lab-chip { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:700; letter-spacing:0.03em; color:white; background:var(--tg-blue); border-radius:6px; padding:1.5px 5px; margin-bottom:4px; text-transform:uppercase; }
+  .tg-cell.tg-rotation { background: #eef6ff; border: 1px solid #b9dcff; padding: 6px; min-height: 52px; }
+  .tg-rotation-row { display:flex; align-items:center; gap:5px; font-size: 10.5px; padding: 3px 5px; border-radius: 7px; background: white; margin-bottom: 3px; border: 1px solid #dce9fb; }
+  .tg-rotation-row:last-child { margin-bottom: 0; }
+  .tg-rotation-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .tg-legend { display:flex; gap: 18px; align-items:center; flex-wrap: wrap; margin-bottom: 16px; font-size: 12px; color: var(--tg-ink-soft); }
+  .tg-legend-swatch { display:inline-flex; align-items:center; gap:6px; }
+  .tg-legend-box { width: 14px; height: 14px; border-radius: 4px; display:inline-block; }
+
+  .tg-badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding: 2px 8px; border-radius: 980px; }
+  .tg-badge-green { background:#e6f6ea; color: var(--tg-green); }
+  .tg-badge-red { background:#fdecea; color: var(--tg-red); }
+  .tg-badge-amber { background:#fdf1e3; color: var(--tg-amber); }
+  .tg-badge-blue { background:#eaf3ff; color: var(--tg-blue); }
+
+  .tg-accordion-head { display:flex; align-items:center; justify-content:space-between; padding: 18px 0; cursor:pointer; border-bottom: 1px solid var(--tg-line-soft); }
+  .tg-accordion-head h4 { margin:0; font-size:16px; font-weight:600; }
+  .tg-accordion-body { padding: 4px 0 20px; color: var(--tg-ink-soft); font-size: 14px; line-height: 1.6; }
+
+  .tg-pill-tabs { display:flex; gap: 6px; background: #f0f0f2; padding: 4px; border-radius: 12px; width: fit-content; }
+  .tg-pill { border:none; background:none; font-family: var(--tg-font); font-size: 13px; font-weight: 500; padding: 7px 16px; border-radius: 9px; cursor:pointer; color: var(--tg-ink-soft); }
+  .tg-pill.active { background: white; color: var(--tg-ink); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+  .tg-login-shell { min-height: calc(100vh - 52px); display:flex; align-items:center; justify-content:center; padding: 24px; }
+  .tg-login-card { width: 380px; background: var(--tg-surface); border: 1px solid var(--tg-line-soft); border-radius: 20px; padding: 36px 32px; text-align:center; }
+
+  .tg-step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--tg-ink); color: white; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+  .tg-feature-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 800px) { .tg-feature-grid { grid-template-columns: 1fr; } .tg-feature-grid + .tg-feature-grid { grid-template-columns: 1fr; } }
+
+/* ---------- Printable timetable ---------- */
+.tg-sheet { background: #fff; color: #000; border: 1px solid var(--tg-line); border-radius: 12px; padding: 20px; font-size: 12px; }
+.tg-sheet-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; font-size: 13px; }
+.tg-sheet-table { border-collapse: collapse; width: 100%; }
+.tg-sheet-table th, .tg-sheet-table td { border: 1px solid #000; padding: 5px 6px; text-align: center; vertical-align: middle; font-size: 11.5px; line-height: 1.35; }
+.tg-sheet-table th { background: #f1f1f1; font-weight: 700; }
+.tg-sheet-time { font-weight: 400; font-size: 10px; white-space: nowrap; }
+.tg-print-break { background: #f1f1f1; width: 28px; }
+.tg-print-vertical { writing-mode: vertical-rl; transform: rotate(180deg); font-weight: 700; letter-spacing: .05em; margin: 0 auto; }
+.tg-sheet-legends { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 14px; margin-top: 16px; align-items: start; }
+.tg-sheet-small th, .tg-sheet-small td { font-size: 10.5px; padding: 3px 5px; }
+.tg-sheet-sign { display: flex; justify-content: space-between; gap: 30px; margin-top: 56px; text-align: center; font-weight: 600; font-size: 12px; }
+.tg-sheet-sign > div { flex: 1; }
+.tg-sign-line { border-top: 1px solid #000; margin-bottom: 6px; }
+
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  .tg-nav, .no-print { display: none !important; }
+  html, body, .tg-root { background: #fff !important; }
+  .tg-print-wrap { padding: 0 !important; max-width: none !important; }
+  .tg-sheet { border: none; padding: 0; border-radius: 0; }
+}
+
+/* =====================================================================
+   LIQUID GLASS THEME
+   Tuning knobs (change these first):
+     --glass-blur   how frosted the CSS glass is (px)
+     --glass-scrim  white veil behind text, 0-1 (raise it for more contrast)
+   The WebGL refraction layer (liquid-glass-js) draws on top of this when
+   available; if not, this CSS glass is what you see.
+   ===================================================================== */
+:root {
+  --glass-blur: 18px;
+  --glass-scrim: 0.42;
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-text: #14161a;
+  --glass-text-soft: #3c3c43;
+}
+
+/* the hero artwork is the page backdrop, so glass always has something to refract */
+.tg-root { background: #f3f6fd url("/hero.svg") center top / cover fixed no-repeat; }
+
+.tg-glass-layer { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; border-radius: inherit; }
+.tg-glass-layer .glass-container, .tg-glass-layer canvas {
+  position: absolute !important; inset: 0 !important; left: 0 !important; top: 0 !important;
+  width: 100% !important; height: 100% !important; margin: 0 !important; transform: none !important;
+  border-radius: inherit; box-shadow: none !important;
+}
+
+/* top navigation: frosted glass bar */
+.tg-nav {
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: 0 8px 30px rgba(40, 60, 120, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.tg-nav::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: rgba(255, 255, 255, var(--glass-scrim)); }
+.tg-nav-inner { position: relative; z-index: 2; }
+.tg-nav .tg-tab, .tg-nav .tg-navbtn { color: var(--glass-text-soft); }
+.tg-nav .tg-tab:hover, .tg-nav .tg-tab.active, .tg-nav .tg-brand { color: var(--glass-text); }
+.tg-nav .tg-navbtn { color: #003f8a; }
+
+/* glass cards */
+.tg-glass-card {
+  position: relative; overflow: hidden; border-radius: 22px; padding: 26px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 14px 40px rgba(40, 60, 120, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+  color: var(--glass-text);
+}
+.tg-glass-scrim { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(160deg, rgba(255,255,255,calc(var(--glass-scrim) + 0.08)), rgba(255,255,255,calc(var(--glass-scrim) - 0.12))); }
+.tg-glass-content { position: relative; z-index: 2; }
+.tg-glass-card .tg-subtle { color: var(--glass-text-soft); }
+.tg-glass-card + .tg-glass-card { margin-top: 0; }
+
+/* About page: readable hero text over the artwork */
+.tg-about .tg-hero h1 { color: var(--glass-text); }
+.tg-about .tg-hero p { color: var(--glass-text-soft); }
+
+/* if the browser can't blur, fall back to a more opaque panel so text stays readable */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .tg-nav, .tg-glass-card { background: rgba(255, 255, 255, 0.82); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .tg-nav, .tg-glass-card { background: rgba(255, 255, 255, 0.92); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+@media print { .tg-root { background: #fff !important; } }

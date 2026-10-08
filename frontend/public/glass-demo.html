@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Liquid glass — tuning page</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dashersw/liquid-glass-js@main/glass.css" />
+<style>
+  html, body { margin: 0; min-height: 100%; font-family: -apple-system, "SF Pro Text", Helvetica, Arial, sans-serif; color: #14161a; }
+  body { background: #f3f6fd url("/hero.svg") center / cover fixed no-repeat; padding: 90px 28px 60px; }
+  #nav-host { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px; max-width: 980px; margin: 40px auto 0; }
+  .card-host { position: relative; min-height: 150px; }
+  .card-text { position: absolute; inset: 0; padding: 22px; z-index: 5; pointer-events: none; }
+  .card-text b { display: block; font-size: 17px; margin-bottom: 6px; }
+  .card-text span { color: #3c3c43; font-size: 14px; line-height: 1.5; }
+  .panel { position: fixed; right: 18px; bottom: 18px; background: rgba(255,255,255,.85); border-radius: 14px; padding: 14px 16px; font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,.12); }
+  .panel input { width: 180px; }
+  h1 { text-align: center; font-size: 44px; letter-spacing: -.03em; margin: 30px 0 6px; }
+  p.sub { text-align: center; color: #3c3c43; margin: 0; }
+</style>
+</head>
+<body>
+  <div id="nav-host"></div>
+  <h1>Liquid glass tuning</h1>
+  <p class="sub">Drag the slider to change the glass tint. Needs WebGL2 + internet (CDN).</p>
+  <div class="grid" id="grid"></div>
+  <div class="panel">Tint opacity <input id="tint" type="range" min="0" max="0.6" step="0.02" value="0.16" /> <span id="tv">0.16</span></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/dashersw/liquid-glass-js@main/container.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/dashersw/liquid-glass-js@main/button.js"></script>
+  <script>
+    const titles = [["Every batch", "Sub-batches S1–S4 with their own labs."], ["No free periods", "Packed days, labs after lunch."], ["Printable", "Notice-board ready, with signatures."]];
+    let made = [];
+    function build(tint) {
+      made.forEach(c => { const i = Container.instances.indexOf(c); if (i >= 0) Container.instances.splice(i, 1); c.element.remove(); });
+      made = [];
+      const nav = new Container({ type: "pill", borderRadius: 28, tintOpacity: tint * 0.6 });
+      ["About", "Set Up", "Timetables", "Help"].forEach(t => nav.addChild(new Button({ text: t, size: 16, type: "pill" })));
+      document.getElementById("nav-host").appendChild(nav.element);
+      made.push(nav);
+      const grid = document.getElementById("grid"); grid.innerHTML = "";
+      titles.forEach(([a, b]) => {
+        const host = document.createElement("div"); host.className = "card-host";
+        const c = new Container({ type: "rounded", borderRadius: 24, tintOpacity: tint });
+        host.appendChild(c.element);
+        const txt = document.createElement("div"); txt.className = "card-text"; txt.innerHTML = "<b>" + a + "</b><span>" + b + "</span>";
+        host.appendChild(txt); grid.appendChild(host); made.push(c);
+        requestAnimationFrame(() => c.updateSizeFromDOM());
+      });
+    }
+    const slider = document.getElementById("tint");
+    slider.addEventListener("change", () => { document.getElementById("tv").textContent = slider.value; build(parseFloat(slider.value)); });
+    window.addEventListener("load", () => build(parseFloat(slider.value)));
+  </script>
+</body>
+</html>
