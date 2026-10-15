@@ -13,7 +13,6 @@ import { generateTimetableRemote } from "./api";
 
 export default function App() {
   const [authed, setAuthed] = useState(false);
-  const [adminName, setAdminName] = useState("");
   const [page, setPage] = useState("login");
   const [config, setConfig] = useState(emptyConfig());
   const [schedule, setSchedule] = useState(null);
@@ -30,6 +29,14 @@ export default function App() {
       setAuthed(!!session);
     };
     checkAuth();
+
+    // Re-check auth on token refresh
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user);
+      setAuthed(!!session);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogin = async (email, password) => {
@@ -41,7 +48,6 @@ export default function App() {
       if (error) throw error;
       setAuthed(true);
       setPage("about");
-      setAdminName(email.split('@')[0]); // Simple name extraction
     } catch (err) {
       setGenError(err.message || "Login failed");
     }
@@ -59,6 +65,7 @@ export default function App() {
     }
   };
 
+  // Rest of your existing functions remain the same...
   const handleLoadSaved = async (savedConfig, savedSchedule) => {
     setConfig(savedConfig);
     setGenError("");
@@ -101,21 +108,22 @@ export default function App() {
   return (
     <GlassContext.Provider value={glassOn}>
       <div className="tg-root">
-        {authed && <NavBar
-          page={page}
-          setPage={setPage}
-          authed={authed}
-          onLogout={handleLogout}
-          hasResult={!!schedule}
-          glassOn={glassOn}
-          setGlassOn={setGlassOn}
-          user={user?.email || ''}
-        />}
+        {authed && (
+          <NavBar
+            page={page}
+            setPage={setPage}
+            authed={authed}
+            onLogout={handleLogout}
+            hasResult={!!schedule}
+            glassOn={glassOn}
+            setGlassOn={setGlassOn}
+            user={user?.email || ''}
+          />
+        )}
         {!authed && (
           <LoginPage
             onLogin={handleLogin}
             goAbout={() => setPage("about")}
-            supabase={supabase}
           />
         )}
         {authed && page === "about" && <AboutPage
