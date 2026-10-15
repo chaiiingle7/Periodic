@@ -140,3 +140,12 @@ export {
   getPeriodsForDay,
   timeLabelForPeriod,
 };
+// Add this to the bottom of src/utils/helpers.js
+
+export const buildSampleConfig = () => {
+  return {
+    batches: [],
+    teachers: [],
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri"]
+  };
+};
