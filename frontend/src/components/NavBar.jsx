@@ -11,6 +11,12 @@ function NavBar({ page, setPage, authed, onLogout, hasResult, glassOn, setGlassO
     { key: "help", label: "Help" },
   ];
   return (
+    // Add this to your NavBar component
+    {authed && (
+      <div className="user-info">
+        Welcome, {user}
+      </div>
+    )}
     <div className="tg-nav">
       <GlassLayer radius={0} type="rounded" tint={GLASS_TUNING.navTint} />
       <div className="tg-nav-inner">
