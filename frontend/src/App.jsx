@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from "react";
-
+import React, { useState, useEffect, useCallback } from "react";
+import { supabase } from './supabaseClient';
 import NavBar from "./components/NavBar";
 import { GlassContext } from "./components/GlassLayer";
 import LoginPage from "./pages/LoginPage";
@@ -8,15 +8,9 @@ import InputPage from "./pages/InputPage";
 import ResultPage from "./pages/ResultPage";
 import HelpPage from "./pages/HelpPage";
 import PrintPage from "./pages/PrintPage";
-
 import { emptyConfig } from "./utils/helpers";
 import { generateTimetableRemote } from "./api";
 
-// This file only wires pages together and owns the top-level state
-// (who's logged in, which page is showing, the current config, and the
-// last generated schedule). Every page/component lives in its own file
-// under ./pages and ./components; the scheduling algorithm itself lives
-// in the Python backend (backend/logic.py) and is called via ./api.js.
 export default function App() {
   const [authed, setAuthed] = useState(false);
   const [adminName, setAdminName] = useState("");
@@ -26,18 +20,46 @@ export default function App() {
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState("");
   const [glassOn, setGlassOn] = useState(true);
+  const [user, setUser] = useState(null);
 
-  const handleLogin = (name) => {
-    setAdminName(name);
-    setAuthed(true);
-    setPage("about");
-  };
-  const handleLogout = () => {
-    setAuthed(false);
-    setPage("login");
+  // Auth state management
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user);
+      setAuthed(!!session);
+    };
+    checkAuth();
+  }, []);
+
+  const handleLogin = async (email, password) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (error) throw error;
+      setAuthed(true);
+      setPage("about");
+      setAdminName(email.split('@')[0]); // Simple name extraction
+    } catch (err) {
+      setGenError(err.message || "Login failed");
+    }
   };
 
-  const handleLoadSaved = (savedConfig, savedSchedule) => {
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setAuthed(false);
+      setPage("login");
+      setUser(null);
+    } catch (err) {
+      setGenError(err.message || "Logout failed");
+    }
+  };
+
+  const handleLoadSaved = async (savedConfig, savedSchedule) => {
     setConfig(savedConfig);
     setGenError("");
     if (savedSchedule) {
@@ -57,9 +79,6 @@ export default function App() {
     }
     setGenerating(true);
     try {
-      // The actual scheduling algorithm runs in the local Python backend
-      // (backend/logic.py) — see api.js. This call needs that server
-      // running on http://127.0.0.1:5000.
       const result = await generateTimetableRemote(config);
       if (result.error) {
         setGenError(result.error);
@@ -81,17 +100,54 @@ export default function App() {
 
   return (
     <GlassContext.Provider value={glassOn}>
-    <div className="tg-root">
-      {authed && <NavBar page={page} setPage={setPage} authed={authed} onLogout={handleLogout} hasResult={!!schedule} glassOn={glassOn} setGlassOn={setGlassOn} />}
-      {!authed && <LoginPage onLogin={handleLogin} goAbout={() => {}} />}
-      {authed && page === "about" && <AboutPage goInput={() => setPage("input")} />}
-      {authed && page === "input" && (
-        <InputPage config={config} setConfig={setConfig} schedule={schedule} onLoadSaved={handleLoadSaved} onGenerate={handleGenerate} generating={generating} genError={genError} />
-      )}
-      {authed && page === "result" && <ResultPage config={config} schedule={schedule} onOpenPrint={() => setPage("print")} />}
-      {authed && page === "print" && schedule && <PrintPage config={config} schedule={schedule} onBack={() => setPage("result")} />}
-      {authed && page === "help" && <HelpPage config={config} schedule={schedule} />}
-    </div>
+      <div className="tg-root">
+        {authed && <NavBar
+          page={page}
+          setPage={setPage}
+          authed={authed}
+          onLogout={handleLogout}
+          hasResult={!!schedule}
+          glassOn={glassOn}
+          setGlassOn={setGlassOn}
+          user={user?.email || ''}
+        />}
+        {!authed && (
+          <LoginPage
+            onLogin={handleLogin}
+            goAbout={() => setPage("about")}
+            supabase={supabase}
+          />
+        )}
+        {authed && page === "about" && <AboutPage
+          goInput={() => setPage("input")}
+          user={user?.email}
+        />}
+        {authed && page === "input" && (
+          <InputPage
+            config={config}
+            setConfig={setConfig}
+            schedule={schedule}
+            onLoadSaved={handleLoadSaved}
+            onGenerate={handleGenerate}
+            generating={generating}
+            genError={genError}
+          />
+        )}
+        {authed && page === "result" && <ResultPage
+          config={config}
+          schedule={schedule}
+          onOpenPrint={() => setPage("print")}
+        />}
+        {authed && page === "print" && schedule && <PrintPage
+          config={config}
+          schedule={schedule}
+          onBack={() => setPage("result")}
+        />}
+        {authed && page === "help" && <HelpPage
+          config={config}
+          schedule={schedule}
+        />}
+      </div>
     </GlassContext.Provider>
   );
 }
