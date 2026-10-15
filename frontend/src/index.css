@@ -1,3 +1,12 @@
+/* ---------------------------------------------------------------------
+   HERO IMAGE  (if you changed your image's file name, change it HERE)
+   --hero-dim: how much the image is darkened so text stays readable (0-1)
+   --------------------------------------------------------------------- */
+:root {
+  --hero-image: url("/hero.svg");
+  --hero-dim: 0.32;
+}
+
 html, body, #root { margin: 0; padding: 0; min-height: 100%; }
 
   :root {
@@ -155,7 +164,10 @@ html, body, #root { margin: 0; padding: 0; min-height: 100%; }
 }
 
 /* the hero artwork is the page backdrop, so glass always has something to refract */
-.tg-root { background: #f3f6fd url("/hero.svg") center top / cover fixed no-repeat; }
+.tg-root {
+  background: linear-gradient(rgba(16, 12, 24, var(--hero-dim)), rgba(16, 12, 24, var(--hero-dim))),
+              var(--hero-image) center top / cover no-repeat fixed #1c1826;
+}
 
 .tg-glass-layer { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; border-radius: inherit; }
 .tg-glass-layer .glass-container, .tg-glass-layer canvas {
@@ -205,3 +217,149 @@ html, body, #root { margin: 0; padding: 0; min-height: 100%; }
   .tg-nav, .tg-glass-card { background: rgba(255, 255, 255, 0.92); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 @media print { .tg-root { background: #fff !important; } }
+
+
+/* =====================================================================
+   ELEGANT DARK THEME — warm cream text + champagne-gold accent
+   This block comes last on purpose, so it overrides the colours above.
+   To restyle everything, change the colours in this first :root block.
+   ===================================================================== */
+:root {
+  --tg-ink: #f8f1e6;            /* main text on the dark background: warm cream */
+  --tg-ink-soft: #d9ccb8;       /* what used to be grey, now a soft sand */
+  --tg-line: rgba(255, 255, 255, 0.28);
+  --tg-line-soft: rgba(255, 255, 255, 0.18);
+  --tg-surface: #fbf8f3;        /* card colour: warm ivory */
+  --tg-blue: #e6bd72;           /* the old blue, now champagne gold */
+  --tg-blue-hover: #f0cf8f;
+  --gold-1: #f3d594;
+  --gold-2: #d8a24a;
+
+  --glass-text: #f8f1e6;
+  --glass-text-soft: #e2d6c3;
+  --glass-border: rgba(255, 255, 255, 0.26);
+  --glass-scrim: 0.40;          /* raise toward 0.6 if text ever feels hard to read */
+  --glass-scrim-rgb: 18, 14, 26;
+}
+
+/* White/ivory cards keep DARK text (the light text is only for the dark background) */
+.tg-card, .tg-login-card, .tg-table-wrap, .tg-sheet {
+  --tg-ink: #1d1d1f;
+  --tg-ink-soft: #5f5a52;       /* warm grey, readable on ivory */
+  --tg-line: #d6d0c6;
+  --tg-line-soft: #e9e3d9;
+  --tg-blue: #8a5a1f;           /* deep bronze for links/accents on ivory */
+  --tg-blue-hover: #6f4713;
+  color: var(--tg-ink);
+}
+
+/* Navigation: dark smoked glass */
+.tg-nav {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.tg-nav::before { background: rgba(var(--glass-scrim-rgb), var(--glass-scrim)); }
+.tg-nav .tg-tab, .tg-nav .tg-navbtn { color: var(--glass-text-soft); }
+.tg-nav .tg-tab:hover, .tg-nav .tg-tab.active, .tg-nav .tg-brand { color: var(--glass-text); }
+.tg-nav .tg-tab.active { border-bottom-color: var(--gold-1); }
+.tg-nav .tg-navbtn { color: var(--gold-1); }
+
+/* Feature cards: dark smoked glass with cream text */
+.tg-glass-card {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  color: var(--glass-text);
+}
+.tg-glass-scrim {
+  background: linear-gradient(160deg,
+    rgba(var(--glass-scrim-rgb), calc(var(--glass-scrim) + 0.06)),
+    rgba(var(--glass-scrim-rgb), calc(var(--glass-scrim) - 0.08)));
+}
+.tg-glass-card .tg-subtle { color: var(--glass-text-soft); }
+
+/* Hero text over the picture */
+.tg-about .tg-hero { background: radial-gradient(ellipse 60% 70% at 50% 55%, rgba(14, 10, 22, 0.55), rgba(14, 10, 22, 0) 72%); }
+.tg-about .tg-hero h1 { color: #fbf4ea; text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45); }
+.tg-about .tg-hero p { color: #e8dcc9; text-shadow: 0 1px 14px rgba(0, 0, 0, 0.5); }
+.tg-eyebrow { color: var(--gold-1); letter-spacing: 0.02em; }
+
+/* Page headings that sit directly on the picture */
+.tg-section-title, .tg-section-sub { text-shadow: 0 1px 10px rgba(0, 0, 0, 0.35); }
+.tg-card .tg-section-title, .tg-card .tg-section-sub, .tg-login-card .tg-section-title { text-shadow: none; }
+
+/* Buttons: gold */
+.tg-btn-primary {
+  background: linear-gradient(135deg, var(--gold-1), var(--gold-2));
+  color: #2b1f10;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(216, 162, 74, 0.28);
+}
+.tg-btn-primary:hover { background: linear-gradient(135deg, #f8e0a8, #e2ad56); }
+.tg-btn-secondary { background: rgba(255, 255, 255, 0.10); color: var(--tg-ink); border: 1px solid var(--tg-line); }
+.tg-btn-secondary:hover { background: rgba(255, 255, 255, 0.18); }
+.tg-card .tg-btn-secondary, .tg-login-card .tg-btn-secondary { background: #fff; border-color: var(--tg-line); }
+.tg-card .tg-btn-secondary:hover { background: #f6f1e8; }
+
+/* Tab pills on the page background */
+.tg-pill-tabs { background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.16); }
+.tg-pill { color: var(--tg-ink-soft); }
+.tg-pill.active { background: #fbf8f3; color: #2b1f10; }
+
+/* Little "info" badges: warm instead of blue */
+.tg-badge-blue { background: #f6ead2; color: #7a4e14; }
+
+/* Labs stay cool blue on purpose: it's a colour code that has to stand out from regular lectures */
+.tg-cell.tg-lab { border-left-color: #0071e3; }
+.tg-lab-chip { background: #0071e3; }
+.tg-legend-swatch:nth-child(2) .tg-legend-box { border-left-color: #0071e3 !important; }
+
+
+/* =====================================================================
+   PATCH — fixes Claude missed. Keep this block LAST.
+   ===================================================================== */
+
+/* 1. The hero heading: kill any leftover blue. If the blue word in
+      "Timetabling solved" comes from an inline style or a hardcoded
+      #0071e3 in your JSX, this !important rule catches it anyway. */
+.tg-hero h1,
+.tg-hero h1 span,
+.tg-hero h1 em,
+.tg-hero h1 b,
+.tg-hero h1 strong {
+  color: #fbf4ea !important;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
+}
+/* If you WANT the highlighted word in gold instead of cream, swap to: */
+.tg-hero h1 .gold, .tg-hero h1 [style*="0071e3"] { color: var(--gold-1) !important; }
+
+/* 2. Hero softens: the tagline and eyebrow on every page (not just About) */
+.tg-hero p { color: #e8dcc9; text-shadow: 0 1px 14px rgba(0, 0, 0, 0.5); }
+.tg-hero .tg-eyebrow { color: var(--gold-1); }
+
+/* 3. Vignette behind the hero on ALL pages so cream text reads over the image */
+.tg-hero {
+  background: radial-gradient(ellipse 60% 70% at 50% 55%, rgba(14, 10, 22, 0.5), rgba(14, 10, 22, 0) 72%);
+}
+
+/* 4. Chips sitting directly on the dark background */
+.tg-root > .tg-container .tg-chip {
+  background: rgba(255, 255, 255, 0.10);
+  color: var(--tg-ink);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+/* 5. Placeholder text inside inputs on dark pages */
+.tg-input::placeholder, .tg-select::placeholder { color: #8d8478; }
+
+/* 6. Gold selection highlight */
+::selection { background: rgba(216, 162, 74, 0.35); color: inherit; }
+
+/* 7. Step numbers + accordion headings on dark pages */
+.tg-step-num { background: linear-gradient(135deg, var(--gold-1), var(--gold-2)); color: #2b1f10; }
+.tg-accordion-head { color: var(--tg-ink); }
+.tg-accordion-head h4 { color: var(--tg-ink); }
+
+/* 8. Ghost / text links on dark background become gold */
+.tg-btn-ghost { color: var(--gold-1); }
+a { color: var(--gold-1); }
+.tg-card a, .tg-login-card a, .tg-sheet a { color: #8a5a1f; }
