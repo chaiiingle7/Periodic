@@ -7,7 +7,7 @@
 // If you ever need to point at a different host/port, set VITE_API_URL in a
 // .env file (e.g. VITE_API_URL=http://127.0.0.1:5000/api).
 
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+const API_BASE = import.meta.env.https://ewmxubtkavtdoedtrkca.supabase.co/rest/v1/ || "/api";
 
 async function postJSON(path, body) {
   let res;
@@ -32,9 +32,28 @@ async function postJSON(path, body) {
   return data;
 }
 
-export async function generateTimetableRemote(config) {
-  return postJSON("/generate", config);
-}
+// src/api/generateTimetableRemote.js
+export const generateTimetableRemote = async (config) => {
+  try {
+    const response = await fetch('http://localhost:5000/generate-timetable', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ batchData: config })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return { error: errorData.error || 'Failed to generate timetable' };
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    return { error: error.message };
+  }
+};
 
 export async function findSubstitutesRemote(config, schedule, teacherId, day, period) {
   return postJSON("/substitute", { config, schedule, teacherId, day, period });
