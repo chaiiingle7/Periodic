@@ -7,7 +7,8 @@
 // If you ever need to point at a different host/port, set VITE_API_URL in a
 // .env file (e.g. VITE_API_URL=http://127.0.0.1:5000/api).
 
-const API_BASE = import.meta.env.https://ewmxubtkavtdoedtrkca.supabase.co/rest/v1/ || "/api";
+// Remove that weird import.meta.env line and use this:
+const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
 async function postJSON(path, body) {
   let res;
