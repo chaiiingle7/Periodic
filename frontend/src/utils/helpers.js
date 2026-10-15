@@ -136,7 +136,7 @@ export {
   subBatchLabel,
   subBatchColor,
   buildSampleConfig,
-  emptyConfig,
+  emptyConfig, // ADD THIS
   getPeriodsForDay,
   timeLabelForPeriod,
 };
