@@ -133,6 +133,12 @@ def reminders_test():
     return jsonify({"ok": True})
 
 
+const cors = require('cors');
+app.use(cors({
+  origin: 'http://localhost:5173', 
+  methods: ['GET', 'POST']
+}));
+
 # Resume the scheduler automatically if reminders were left switched on
 # before a restart.
 if reminders.service.enabled:
