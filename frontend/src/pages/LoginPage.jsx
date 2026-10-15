@@ -13,7 +13,20 @@ function LoginPage({ onLogin, goAbout }) {
     onLogin(name.trim());
   };
   const handleKeyDown = (e) => { if (e.key === "Enter") submit(); };
-
+// Inside your LoginPage component
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const { email, password } = e.target.elements;
+  try {
+    await supabase.auth.signInWithPassword({
+      email: email.value,
+      password: password.value
+    });
+    onLogin(email.value, password.value);
+  } catch (err) {
+    setError(err.message);
+  }
+};
   return (
     <div className="tg-login-shell">
       <div className="tg-login-card">
