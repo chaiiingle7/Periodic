@@ -11,6 +11,44 @@ import PrintPage from "./pages/PrintPage";
 import { emptyConfig } from "./utils/helpers";
 import { generateTimetableRemote } from "./api";
 
+// Shows a readable message instead of a blank white page if a screen crashes
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  componentDidCatch(error, info) {
+    console.error("UI crash:", error, info);
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="tg-container" style={{ padding: "60px 24px" }}>
+          <div className="tg-card">
+            <div className="tg-section-title" style={{ fontSize: 18 }}>Something went wrong on this page</div>
+            <p className="tg-subtle" style={{ margin: "8px 0 16px" }}>
+              {String(this.state.error?.message || this.state.error)}
+            </p>
+            <button
+              className="tg-btn tg-btn-primary"
+              onClick={() => {
+                this.setState({ error: null });
+                if (this.props.onReset) this.props.onReset();
+              }}
+            >
+              Back to Set Up
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   // State management
   const [authed, setAuthed] = useState(false);
@@ -53,7 +91,7 @@ export default function App() {
   const handleLogin = async (email, password) => {
     if (!supabase) {
       throw new Error(
-        "Supabase is not configured. Check your .env file (VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY) and restart the dev server."
+        "Supabase is not configured. Check your environment variables (VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY) and redeploy."
       );
     }
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -82,14 +120,28 @@ export default function App() {
     }
   };
 
-  // NOTE: these two were missing from the file you sent. If you have your
-  // original versions, paste them here in place of these.
+  // Generate a timetable via the backend. A bad or error response is never
+  // stored as the schedule, so the Result page can't crash on it.
   const handleGenerate = async () => {
     setGenerating(true);
     setGenError("");
     try {
       const result = await generateTimetableRemote(config);
-      setSchedule(result);
+      if (!result || result.error) {
+        throw new Error(result?.error || "The server returned an empty response.");
+      }
+      if (!result.batchSlot || !result.teacherSlot) {
+        throw new Error("The server returned an unexpected response. Please try again.");
+      }
+      setSchedule({
+        unplaced: [],
+        backToBackCount: 0,
+        freePeriodCount: 0,
+        teacherWeeklyCount: {},
+        overCap: [],
+        underCap: [],
+        ...result,
+      });
       setPage("result");
     } catch (err) {
       setGenError(err.message || "Failed to generate timetable");
@@ -119,33 +171,35 @@ export default function App() {
           />
         )}
 
-        {/* Logged out: login page, or the About page if they clicked "New here?" */}
-        {!authed && page !== "about" && (
-          <LoginPage
-            onLogin={handleLogin}
-            goAbout={() => setPage("about")}
-          />
-        )}
-        {!authed && page === "about" && (
-          <AboutPage goInput={() => setPage("login")} user={undefined} />
-        )}
+        <ErrorBoundary key={page} onReset={() => setPage("input")}>
+          {/* Logged out: login page, or the About page if they clicked "New here?" */}
+          {!authed && page !== "about" && (
+            <LoginPage
+              onLogin={handleLogin}
+              goAbout={() => setPage("about")}
+            />
+          )}
+          {!authed && page === "about" && (
+            <AboutPage goInput={() => setPage("login")} user={undefined} />
+          )}
 
-        {/* Logged in */}
-        {authed && page === "about" && <AboutPage goInput={() => setPage("input")} user={user?.email} />}
-        {authed && page === "input" && (
-          <InputPage
-            config={config}
-            setConfig={setConfig}
-            schedule={schedule}
-            onLoadSaved={handleLoadSaved}
-            onGenerate={handleGenerate}
-            generating={generating}
-            genError={genError}
-          />
-        )}
-        {authed && page === "result" && <ResultPage config={config} schedule={schedule} onOpenPrint={() => setPage("print")} />}
-        {authed && page === "print" && schedule && <PrintPage config={config} schedule={schedule} onBack={() => setPage("result")} />}
-        {authed && page === "help" && <HelpPage config={config} schedule={schedule} />}
+          {/* Logged in */}
+          {authed && page === "about" && <AboutPage goInput={() => setPage("input")} user={user?.email} />}
+          {authed && page === "input" && (
+            <InputPage
+              config={config}
+              setConfig={setConfig}
+              schedule={schedule}
+              onLoadSaved={handleLoadSaved}
+              onGenerate={handleGenerate}
+              generating={generating}
+              genError={genError}
+            />
+          )}
+          {authed && page === "result" && <ResultPage config={config} schedule={schedule} onOpenPrint={() => setPage("print")} />}
+          {authed && page === "print" && schedule && <PrintPage config={config} schedule={schedule} onBack={() => setPage("result")} />}
+          {authed && page === "help" && <HelpPage config={config} schedule={schedule} />}
+        </ErrorBoundary>
       </div>
     </GlassContext.Provider>
   );
