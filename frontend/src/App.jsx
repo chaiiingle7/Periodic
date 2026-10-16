@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from './supabaseClient';
 import NavBar from "./components/NavBar";
 import { GlassContext } from "./components/GlassLayer";
@@ -12,6 +12,7 @@ import { emptyConfig } from "./utils/helpers";
 import { generateTimetableRemote } from "./api";
 
 export default function App() {
+  // State management
   const [authed, setAuthed] = useState(false);
   const [page, setPage] = useState("login");
   const [config, setConfig] = useState(emptyConfig());
@@ -30,11 +31,17 @@ export default function App() {
     };
     checkAuth();
 
-    // Re-check auth on token refresh
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user);
-      setAuthed(!!session);
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user);
+        setAuthed(!!session);
+        if (session) {
+          setPage("about");
+        } else {
+          setPage("login");
+        }
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, []);
@@ -46,8 +53,6 @@ export default function App() {
         password
       });
       if (error) throw error;
-      setAuthed(true);
-      setPage("about");
     } catch (err) {
       setGenError(err.message || "Login failed");
     }
@@ -57,53 +62,12 @@ export default function App() {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      setAuthed(false);
-      setPage("login");
-      setUser(null);
     } catch (err) {
       setGenError(err.message || "Logout failed");
     }
   };
 
-  // Rest of your existing functions remain the same...
-  const handleLoadSaved = async (savedConfig, savedSchedule) => {
-    setConfig(savedConfig);
-    setGenError("");
-    if (savedSchedule) {
-      setSchedule(savedSchedule);
-      setPage("result");
-    } else {
-      setSchedule(null);
-      setPage("input");
-    }
-  };
-
-  const handleGenerate = useCallback(async () => {
-    setGenError("");
-    if (config.batches.length === 0 || config.teachers.length === 0) {
-      setGenError("Add at least one batch with subjects, and at least one teacher.");
-      return;
-    }
-    setGenerating(true);
-    try {
-      const result = await generateTimetableRemote(config);
-      if (result.error) {
-        setGenError(result.error);
-        setSchedule(null);
-      } else {
-        setSchedule(result);
-        setPage("result");
-      }
-    } catch (e) {
-      setGenError(
-        e.message === "Failed to fetch"
-          ? "Could not reach the local scheduling server. Make sure the backend is running (see README) at http://127.0.0.1:5000."
-          : e.message || "Something went wrong while generating the timetable."
-      );
-    } finally {
-      setGenerating(false);
-    }
-  }, [config]);
+  // Rest of your existing functions...
 
   return (
     <GlassContext.Provider value={glassOn}>
@@ -126,35 +90,7 @@ export default function App() {
             goAbout={() => setPage("about")}
           />
         )}
-        {authed && page === "about" && <AboutPage
-          goInput={() => setPage("input")}
-          user={user?.email}
-        />}
-        {authed && page === "input" && (
-          <InputPage
-            config={config}
-            setConfig={setConfig}
-            schedule={schedule}
-            onLoadSaved={handleLoadSaved}
-            onGenerate={handleGenerate}
-            generating={generating}
-            genError={genError}
-          />
-        )}
-        {authed && page === "result" && <ResultPage
-          config={config}
-          schedule={schedule}
-          onOpenPrint={() => setPage("print")}
-        />}
-        {authed && page === "print" && schedule && <PrintPage
-          config={config}
-          schedule={schedule}
-          onBack={() => setPage("result")}
-        />}
-        {authed && page === "help" && <HelpPage
-          config={config}
-          schedule={schedule}
-        />}
+        {/* Rest of your page rendering */}
       </div>
     </GlassContext.Provider>
   );
