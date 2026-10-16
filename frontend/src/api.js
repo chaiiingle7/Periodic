@@ -1,56 +1,42 @@
 // src/api.js
-// Base API URL - uses environment variable or defaults to local dev
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+// VITE_API_URL should be your Render URL, e.g. https://periodic-s2w9.onrender.com/api
+// The code below adds "/api" automatically if it is missing.
+const RAW_BASE = (import.meta.env.VITE_API_URL || "/api").replace(/\/+$/, "");
+const API_BASE = RAW_BASE.endsWith("/api") ? RAW_BASE : `${RAW_BASE}/api`;
 
-// Helper function to post JSON data
-async function postJSON(path, body) {
-  const res = await fetch(`${API_BASE}${path}`, {
+async function request(path, options = {}) {
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, options);
+  } catch (err) {
+    throw new Error(
+      "Cannot reach the server. If it was idle it may be waking up (this can take up to a minute). Please try again."
+    );
+  }
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || `Request failed (${res.status})`);
+  }
+
+  return await res.json();
+}
+
+function postJSON(path, body) {
+  return request(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    throw new Error(data?.error || `Request failed (${res.status})`);
-  }
-
-  return await res.json();
 }
 
-// Helper function to get JSON data
-async function getJSON(path) {
-  const res = await fetch(`${API_BASE}${path}`);
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    throw new Error(data?.error || `Request failed (${res.status})`);
-  }
-  return await res.json();
+function getJSON(path) {
+  return request(path);
 }
 
-// Generate timetable function
-export const generateTimetableRemote = async (config) => {
-  try {
-    const response = await fetch(`${API_BASE}/generate-timetable`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ batchData: config })
-    });
+// Generate timetable: the backend expects the config itself as the body
+export const generateTimetableRemote = (config) => postJSON("/generate", config);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      return { error: errorData.error || 'Failed to generate timetable' };
-    }
-
-    return await response.json();
-  } catch (error) {
-    return { error: error.message };
-  }
-};
-
-// Export other functions
 export async function findSubstitutesRemote(config, schedule, teacherId, day, period) {
   return postJSON("/substitute", { config, schedule, teacherId, day, period });
 }
