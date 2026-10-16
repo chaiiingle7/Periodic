@@ -24,6 +24,8 @@ export default function App() {
 
   // Auth state management: restore session on load AND react to login/logout
   useEffect(() => {
+    if (!supabase) return; // not configured; handleLogin will show an error
+
     let mounted = true;
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -49,6 +51,11 @@ export default function App() {
 
   // Handle login from LoginPage (errors are passed back so LoginPage can show them)
   const handleLogin = async (email, password) => {
+    if (!supabase) {
+      throw new Error(
+        "Supabase is not configured. Check your .env file (VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY) and restart the dev server."
+      );
+    }
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -62,8 +69,10 @@ export default function App() {
   // Handle logout
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (supabase) {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+      }
       setAuthed(false);
       setPage("login");
       setUser(null);
