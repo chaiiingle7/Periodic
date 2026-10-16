@@ -1,11 +1,10 @@
 """
-Local API server for the Periodic timetable generator.
+API server for the Periodic timetable generator.
 
-Runs entirely on your own machine (http://127.0.0.1:5000) — nothing here
-talks to the internet or any third-party service. The frontend (a Vite/React
-dev server or its production build) calls this API to generate timetables
-and to find substitute teachers; see backend/logic.py for the actual
-scheduling algorithm.
+Runs locally at http://127.0.0.1:5000 and also on Render (via gunicorn).
+The frontend (a Vite/React dev server or its production build) calls this API
+to generate timetables and to find substitute teachers; see backend/logic.py
+for the actual scheduling algorithm.
 """
 
 import os
@@ -33,10 +32,18 @@ from logic import find_substitutes, generate_timetable
 import reminders
 
 app = Flask(__name__)
-# CORS is needed because the frontend dev server (http://localhost:5173) and
-# this API (http://127.0.0.1:5000) are different origins. Everything still
-# stays on localhost — this does not open the server up to the internet.
-CORS(app)
+
+# CORS: the frontend (Vercel, or the Vite dev server) is a different origin
+# from this API, so the browser needs permission to call it.
+# On Render, set CORS_ORIGINS to your frontend URL(s), comma-separated, e.g.
+#   https://your-app.vercel.app,http://localhost:5173
+# If CORS_ORIGINS is not set, any origin is allowed (fine for testing).
+_origins = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
+CORS(
+    app,
+    resources={r"/api/*": {"origins": _origins or "*"}},
+    methods=["GET", "POST", "OPTIONS"],
+)
 
 
 @app.route("/api/health", methods=["GET"])
@@ -133,12 +140,6 @@ def reminders_test():
     return jsonify({"ok": True})
 
 
-const cors = require('cors');
-app.use(cors({
-  origin: 'http://localhost:5173', 
-  methods: ['GET', 'POST']
-}));
-
 # Resume the scheduler automatically if reminders were left switched on
 # before a restart.
 if reminders.service.enabled:
@@ -146,5 +147,5 @@ if reminders.service.enabled:
 
 
 if __name__ == "__main__":
-    # 127.0.0.1 only — this server is not exposed to your network.
+    # Local development only. On Render, gunicorn starts the app instead.
     app.run(host="127.0.0.1", port=5000, debug=False)
