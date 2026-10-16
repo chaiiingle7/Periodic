@@ -1,10 +1,16 @@
 """
 Email reminders for teachers — sent N minutes (default 10) before each lecture.
 
-Uses only the Python standard library (smtplib, threading, email, zoneinfo) so
-there is nothing extra to install. SMTP credentials come from environment
-variables (see .env.example in this folder); they are never stored in the
-timetable.
+Uses only the Python standard library (urllib, smtplib, threading, email,
+zoneinfo), so there is nothing extra to install.
+
+Two ways to send (credentials come from environment variables, never from the
+timetable):
+  1. Brevo HTTPS API   -> set BREVO_API_KEY and BREVO_SENDER. Works on hosts
+     that block SMTP ports (such as Render's free plan). 300 emails/day free.
+  2. Plain SMTP        -> set SMTP_HOST, SMTP_USER, SMTP_PASSWORD (e.g. Gmail
+     with an App Password). Works locally or on hosts that allow SMTP.
+If BREVO_API_KEY is set it is used; otherwise SMTP is used.
 
 How it works:
   1. The frontend sends the generated timetable to /api/reminders/enable.
@@ -16,9 +22,8 @@ How it works:
      as ONE session, so a teacher gets one email per session, not one per period.
 
 IMPORTANT: the background thread only runs while this backend process is
-running. Host it somewhere that stays on (a paid Render instance / Railway /
-a VM) — not a serverless function and not a sleeping free instance. Run a
-single worker/instance, or reminders will be sent more than once.
+running, so the host must stay awake (e.g. ping /api/health every 5 minutes).
+Run a single worker/instance, or reminders will be sent more than once.
 """
 
 import json
@@ -26,6 +31,8 @@ import os
 import smtplib
 import threading
 import time
+import urllib.error
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from typing import Any, Dict, List, Optional
@@ -33,6 +40,7 @@ from zoneinfo import ZoneInfo
 
 STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reminders_state.json")
 DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+BREVO_URL = "https://api.brevo.com/v3/smtp/email"
 
 
 # ---------------------------------------------------------------------------
@@ -184,8 +192,21 @@ def compose_email(config: dict, teacher: dict, session: dict, lead_minutes: int)
 
 
 # ---------------------------------------------------------------------------
-# SMTP
+# Sending: Brevo HTTPS API (free-host friendly) or plain SMTP
 # ---------------------------------------------------------------------------
+
+def brevo_settings() -> Dict[str, str]:
+    return {
+        "api_key": (os.environ.get("BREVO_API_KEY", "") or "").strip(),
+        "sender": (os.environ.get("BREVO_SENDER") or os.environ.get("SMTP_FROM") or os.environ.get("SMTP_USER") or "").strip(),
+        "name": (os.environ.get("BREVO_SENDER_NAME") or "Periodic Timetable").strip(),
+    }
+
+
+def brevo_configured() -> bool:
+    b = brevo_settings()
+    return bool(b["api_key"] and b["sender"])
+
 
 def smtp_settings() -> Dict[str, Any]:
     return {
@@ -203,10 +224,46 @@ def smtp_configured() -> bool:
     return bool(s["host"] and s["user"] and s["password"])
 
 
-def send_email(to: str, content: Dict[str, str]) -> None:
+def email_configured() -> bool:
+    """True if either sending method is set up."""
+    return brevo_configured() or smtp_configured()
+
+
+def _send_via_brevo(to: str, content: Dict[str, str]) -> None:
+    b = brevo_settings()
+    payload = json.dumps({
+        "sender": {"name": b["name"], "email": b["sender"]},
+        "to": [{"email": to}],
+        "subject": content["subject"],
+        "htmlContent": content["html"],
+        "textContent": content["text"],
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        BREVO_URL,
+        data=payload,
+        method="POST",
+        headers={
+            "api-key": b["api_key"],
+            "content-type": "application/json",
+            "accept": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            resp.read()
+    except urllib.error.HTTPError as exc:
+        detail = ""
+        try:
+            detail = exc.read().decode("utf-8", "replace")[:300]
+        except Exception:
+            pass
+        raise RuntimeError(f"Brevo rejected the request (HTTP {exc.code}). {detail}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Could not reach Brevo: {exc.reason}") from exc
+
+
+def _send_via_smtp(to: str, content: Dict[str, str]) -> None:
     s = smtp_settings()
-    if not smtp_configured():
-        raise RuntimeError("SMTP is not configured — set SMTP_HOST, SMTP_USER and SMTP_PASSWORD (see backend/.env.example).")
     msg = EmailMessage()
     msg["Subject"] = content["subject"]
     msg["From"] = s["sender"]
@@ -235,8 +292,20 @@ def send_email(to: str, content: Dict[str, str]) -> None:
         raise RuntimeError(
             f"Could not connect to the mail server ({s['host']}:{s['port']}): {exc}. "
             "If this backend runs on Render's free plan, outbound mail ports are blocked — "
-            "use a paid instance or run the backend elsewhere."
+            "use the Brevo option (BREVO_API_KEY + BREVO_SENDER) instead."
         ) from exc
+
+
+def send_email(to: str, content: Dict[str, str]) -> None:
+    if brevo_configured():
+        _send_via_brevo(to, content)
+    elif smtp_configured():
+        _send_via_smtp(to, content)
+    else:
+        raise RuntimeError(
+            "Email sending is not configured — set BREVO_API_KEY and BREVO_SENDER "
+            "(or SMTP_HOST, SMTP_USER and SMTP_PASSWORD) on the backend."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -275,9 +344,9 @@ class ReminderService:
         self._load()
 
     # -- persistence so reminders survive a restart --
-    # Note: on hosts with an ephemeral disk (e.g. Render without a persistent
-    # disk) this file is lost on every redeploy/restart; switch reminders on
-    # again from the app if that happens.
+    # Note: on hosts with an ephemeral disk (e.g. Render's free plan) this file
+    # is lost on every redeploy/restart; switch reminders on again from the app
+    # if that happens.
     def _load(self) -> None:
         try:
             with open(STATE_FILE) as f:
@@ -316,7 +385,8 @@ class ReminderService:
             emails = sum(1 for t in self.config["teachers"] if (t.get("email") or "").strip())
         return {
             "enabled": self.enabled,
-            "smtpConfigured": smtp_configured(),
+            # key name kept as-is because the frontend reads it
+            "smtpConfigured": email_configured(),
             "leadMinutes": self.lead_minutes,
             "teachersWithEmail": emails,
             "sentToday": len([k for k in self.sent if k.startswith(str(_now().date()))]),
