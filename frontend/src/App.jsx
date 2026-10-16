@@ -22,52 +22,77 @@ export default function App() {
   const [glassOn, setGlassOn] = useState(true);
   const [user, setUser] = useState(null);
 
-  // Auth state management
+  // Auth state management: restore session on load AND react to login/logout
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user);
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      setUser(session?.user ?? null);
       setAuthed(!!session);
-    };
-    checkAuth();
+      if (session) setPage((p) => (p === "login" ? "about" : p));
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user);
+      (_event, session) => {
+        setUser(session?.user ?? null);
         setAuthed(!!session);
-        if (session) {
-          setPage("about");
-        } else {
-          setPage("login");
-        }
+        if (!session) setPage("login");
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
+  // Handle login from LoginPage (errors are passed back so LoginPage can show them)
   const handleLogin = async (email, password) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      if (error) throw error;
-    } catch (err) {
-      setGenError(err.message || "Login failed");
-    }
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    setUser(data.user);
+    setAuthed(true);
+    setPage("about");
   };
 
+  // Handle logout
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      setAuthed(false);
+      setPage("login");
+      setUser(null);
+      setSchedule(null);
     } catch (err) {
       setGenError(err.message || "Logout failed");
     }
   };
 
-  // Rest of your existing functions...
+  // NOTE: these two were missing from the file you sent. If you have your
+  // original versions, paste them here in place of these.
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setGenError("");
+    try {
+      const result = await generateTimetableRemote(config);
+      setSchedule(result);
+      setPage("result");
+    } catch (err) {
+      setGenError(err.message || "Failed to generate timetable");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleLoadSaved = (saved) => {
+    if (saved?.config) setConfig(saved.config);
+    if (saved?.schedule) setSchedule(saved.schedule);
+  };
 
   return (
     <GlassContext.Provider value={glassOn}>
@@ -84,13 +109,34 @@ export default function App() {
             user={user?.email || ''}
           />
         )}
-        {!authed && (
+
+        {/* Logged out: login page, or the About page if they clicked "New here?" */}
+        {!authed && page !== "about" && (
           <LoginPage
             onLogin={handleLogin}
             goAbout={() => setPage("about")}
           />
         )}
-        {/* Rest of your page rendering */}
+        {!authed && page === "about" && (
+          <AboutPage goInput={() => setPage("login")} user={undefined} />
+        )}
+
+        {/* Logged in */}
+        {authed && page === "about" && <AboutPage goInput={() => setPage("input")} user={user?.email} />}
+        {authed && page === "input" && (
+          <InputPage
+            config={config}
+            setConfig={setConfig}
+            schedule={schedule}
+            onLoadSaved={handleLoadSaved}
+            onGenerate={handleGenerate}
+            generating={generating}
+            genError={genError}
+          />
+        )}
+        {authed && page === "result" && <ResultPage config={config} schedule={schedule} onOpenPrint={() => setPage("print")} />}
+        {authed && page === "print" && schedule && <PrintPage config={config} schedule={schedule} onBack={() => setPage("result")} />}
+        {authed && page === "help" && <HelpPage config={config} schedule={schedule} />}
       </div>
     </GlassContext.Provider>
   );
