@@ -10,7 +10,7 @@ function LoginPage({ onLogin, goAbout }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
+    if (!email.trim() || !password) {
       setError("Please enter both email and password");
       return;
     }
@@ -19,7 +19,7 @@ function LoginPage({ onLogin, goAbout }) {
     setError("");
 
     try {
-      await onLogin(email.trim(), password.trim());
+      await onLogin(email.trim(), password);
     } catch (err) {
       setError(err.message || "Failed to sign in");
     } finally {
@@ -71,6 +71,7 @@ function LoginPage({ onLogin, goAbout }) {
 
         <div className="tg-divider" />
         <button
+          type="button"
           className="tg-btn-ghost"
           style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13 }}
           onClick={goAbout}
