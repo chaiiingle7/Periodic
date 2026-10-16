@@ -1,22 +1,24 @@
 """
 Email reminders for teachers — sent N minutes (default 10) before each lecture.
 
-Uses only the Python standard library (smtplib, threading, email) so there is
-nothing extra to install. SMTP credentials come from environment variables
-(see .env.example in this folder); they are never stored in the timetable.
+Uses only the Python standard library (smtplib, threading, email, zoneinfo) so
+there is nothing extra to install. SMTP credentials come from environment
+variables (see .env.example in this folder); they are never stored in the
+timetable.
 
 How it works:
   1. The frontend sends the generated timetable to /api/reminders/enable.
   2. A background thread wakes up every 30 seconds, looks at "now" in the
-     server's timezone, and finds every lecture/lab that starts in about
-     `lead_minutes`. For each one it emails that teacher once.
+     REMINDER_TIMEZONE timezone (default Asia/Kolkata), and finds every
+     lecture/lab that starts in about `lead_minutes`. For each one it emails
+     that teacher once.
   3. Consecutive periods of the same class (e.g. a 2-period lab) are treated
      as ONE session, so a teacher gets one email per session, not one per period.
 
 IMPORTANT: the background thread only runs while this backend process is
-running. Host it somewhere that stays on (Render / Railway / a VM) — not a
-serverless function. Run a single worker/instance, or reminders will be
-sent more than once.
+running. Host it somewhere that stays on (a paid Render instance / Railway /
+a VM) — not a serverless function and not a sleeping free instance. Run a
+single worker/instance, or reminders will be sent more than once.
 """
 
 import json
@@ -24,12 +26,33 @@ import os
 import smtplib
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from typing import Any, Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reminders_state.json")
 DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+
+# ---------------------------------------------------------------------------
+# Timezone: servers usually run on UTC, but lectures are in local time.
+# Set REMINDER_TIMEZONE on the server (e.g. Asia/Kolkata) to change it.
+# ---------------------------------------------------------------------------
+
+def _timezone():
+    name = os.environ.get("REMINDER_TIMEZONE") or "Asia/Kolkata"
+    try:
+        return ZoneInfo(name)
+    except Exception:
+        if name in ("Asia/Kolkata", "Asia/Calcutta"):
+            return timezone(timedelta(hours=5, minutes=30))
+        return None
+
+
+def _now() -> datetime:
+    tz = _timezone()
+    return datetime.now(tz) if tz else datetime.now()
 
 
 # ---------------------------------------------------------------------------
@@ -166,11 +189,12 @@ def compose_email(config: dict, teacher: dict, session: dict, lead_minutes: int)
 
 def smtp_settings() -> Dict[str, Any]:
     return {
-        "host": os.environ.get("SMTP_HOST", ""),
+        "host": (os.environ.get("SMTP_HOST", "") or "").strip(),
         "port": int(os.environ.get("SMTP_PORT", "587") or 587),
-        "user": os.environ.get("SMTP_USER", ""),
-        "password": os.environ.get("SMTP_PASSWORD", ""),
-        "sender": os.environ.get("SMTP_FROM") or os.environ.get("SMTP_USER", ""),
+        "user": (os.environ.get("SMTP_USER", "") or "").strip(),
+        # Google shows app passwords with spaces; they must be removed.
+        "password": (os.environ.get("SMTP_PASSWORD", "") or "").replace(" ", "").strip(),
+        "sender": (os.environ.get("SMTP_FROM") or os.environ.get("SMTP_USER", "") or "").strip(),
     }
 
 
@@ -189,15 +213,30 @@ def send_email(to: str, content: Dict[str, str]) -> None:
     msg["To"] = to
     msg.set_content(content["text"])
     msg.add_alternative(content["html"], subtype="html")
-    if s["port"] == 465:
-        with smtplib.SMTP_SSL(s["host"], s["port"], timeout=20) as server:
-            server.login(s["user"], s["password"])
-            server.send_message(msg)
-    else:
-        with smtplib.SMTP(s["host"], s["port"], timeout=20) as server:
-            server.starttls()
-            server.login(s["user"], s["password"])
-            server.send_message(msg)
+    try:
+        if s["port"] == 465:
+            with smtplib.SMTP_SSL(s["host"], s["port"], timeout=20) as server:
+                server.login(s["user"], s["password"])
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(s["host"], s["port"], timeout=20) as server:
+                server.starttls()
+                server.login(s["user"], s["password"])
+                server.send_message(msg)
+    except smtplib.SMTPAuthenticationError:
+        raise RuntimeError(
+            "The mail server rejected the login. For Gmail, use a 16-character App Password "
+            "(Google Account > Security > App passwords), not your normal password, and make sure "
+            "SMTP_USER is the full Gmail address."
+        )
+    except smtplib.SMTPException:
+        raise
+    except OSError as exc:
+        raise RuntimeError(
+            f"Could not connect to the mail server ({s['host']}:{s['port']}): {exc}. "
+            "If this backend runs on Render's free plan, outbound mail ports are blocked — "
+            "use a paid instance or run the backend elsewhere."
+        ) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -236,6 +275,9 @@ class ReminderService:
         self._load()
 
     # -- persistence so reminders survive a restart --
+    # Note: on hosts with an ephemeral disk (e.g. Render without a persistent
+    # disk) this file is lost on every redeploy/restart; switch reminders on
+    # again from the app if that happens.
     def _load(self) -> None:
         try:
             with open(STATE_FILE) as f:
@@ -277,7 +319,7 @@ class ReminderService:
             "smtpConfigured": smtp_configured(),
             "leadMinutes": self.lead_minutes,
             "teachersWithEmail": emails,
-            "sentToday": len([k for k in self.sent if k.startswith(str(datetime.now().date()))]),
+            "sentToday": len([k for k in self.sent if k.startswith(str(_now().date()))]),
             "lastError": self.last_error,
         }
 
@@ -285,7 +327,7 @@ class ReminderService:
         """Send everything currently due. Returns how many emails were sent."""
         if not (self.enabled and self.config and self.schedule):
             return 0
-        now = now or datetime.now()
+        now = now or _now()
         sent_count = 0
         for item in due_reminders(self.config, self.schedule, self.lead_minutes, now, self.sent):
             try:
